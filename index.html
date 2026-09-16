@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹 리듬게임</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a2e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            width: 400px;
+            height: 600px;
+            background-color: #16213e;
+            border: 3px solid #0f3460;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 게임 정보 헤더 */
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 10;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* 판정 텍스트 */
+        .judgment {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s ease-out;
+            z-index: 10;
+        }
+
+        /* 트랙 영역 */
+        .track-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            display: flex;
+            border-bottom: 2px solid #e94560;
+        }
+
+        .lane {
+            flex: 1;
+            height: 100%;
+            border-right: 1px dashed rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .lane:last-child {
+            border-right: none;
+        }
+
+        /* 노트 스타일 */
+        .note {
+            position: absolute;
+            width: 90%;
+            height: 20px;
+            left: 5%;
+            background: linear-gradient(180deg, #ff2e63 0%, #08d9d6 100%);
+            border-radius: 5px;
+            box-shadow: 0 0 8px #08d9d6;
+        }
+
+        /* 판정선 */
+        .hit-line {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            height: 5px;
+            background-color: #e94560;
+            box-shadow: 0 0 10px #e94560;
+        }
+
+        /* 키 입력을 위한 바텀 패널 */
+        .key-panel {
+            height: 100px;
+            display: flex;
+            background-color: #0f3460;
+        }
+
+        .key-button {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-right: 1px solid #16213e;
+            transition: background-color 0.05s;
+        }
+
+        .key-button:last-child {
+            border-right: none;
+        }
+
+        .key-button.active {
+            background-color: #e94560;
+            color: #fff;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 시작 버튼 오버레이 */
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e94560;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            background-color: #ff2e63;
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- 정보 표시판 -->
+    <div class="info-panel">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>COMBO: <span id="combo">0</span></div>
+    </div>
+
+    <!-- 판정 메시지 -->
+    <div id="judgment" class="judgment"></div>
+
+    <!-- 노트가 내려오는 트랙 -->
+    <div class="track-container">
+        <div class="lane" id="lane-0"></div>
+        <div class="lane" id="lane-1"></div>
+        <div class="lane" id="lane-2"></div>
+        <div class="lane" id="lane-3"></div>
+        <div class="hit-line"></div>
+    </div>
+
+    <!-- 하단 키 버튼 -->
+    <div class="key-panel">
+        <div class="key-button" id="key-btn-0">D</div>
+        <div class="key-button" id="key-btn-1">F</div>
+        <div class="key-button" id="key-btn-2">J</div>
+        <div class="key-button" id="key-btn-3">K</div>
+    </div>
+
+    <!-- 시작 화면 -->
+    <div class="start-screen" id="start-screen">
+        <h1 style="margin-bottom: 20px;">RHYTHM GAME</h1>
+        <p style="margin-bottom: 30px;">조작키: D, F, J, K</p>
+        <button class="start-btn" onclick="startGame()">게임 시작</button>
+    </div>
+</div>
+
+<script>
+    const KEYS = ['KeyD', 'KeyF', 'KeyJ', 'KeyK'];
+    const LANE_COUNT = 4;
+    const TRACK_HEIGHT = 500; // note가 시작해서 판정선에 닿기까지 이동 거리
+    const HIT_LINE_Y = 480;   // 판정선의 Y 위치 (top 좌표 기준)
+    const NOTE_SPEED = 4;     // 노트가 내려오는 속도 (px/frame)
+
+    let score = 0;
+    let combo = 0;
+    let gameInterval = null;
+    let isPlaying = false;
+
+    // 키 활성화 상태 저장
+    const keyState = [false, false, false, false];
+
+    // 현재 화면에 출력 중인 노트 객체 배열
+    let activeNotes = [];
+
+    // 채보 데이터 (시간(ms), 트랙 번호 0~3)
+    // 초 단위에 맞춰 타이밍 생성
+    const chartData = [
+        { time: 1000, lane: 0 },
+        { time: 1500, lane: 1 },
+        { time: 2000, lane: 2 },
+        { time: 2500, lane: 3 },
+        { time: 3000, lane: 1 },
+        { time: 3200, lane: 2 },
+        { time: 3800, lane: 0 },
+        { time: 4000, lane: 3 },
+        { time: 4500, lane: 1 },
+        { time: 4700, lane: 2 },
+        { time: 5200, lane: 0 },
+        { time: 5400, lane: 1 },
+        { time: 5600, lane: 2 },
+        { time: 5800, lane: 3 },
+        { time: 6500, lane: 0 },
+        { time: 6500, lane: 3 }, // 동시치기
+        { time: 7200, lane: 1 },
+        { time: 7200, lane: 2 },
+    ];
+
+    let startTime = 0;
+    let nextNoteIndex = 0;
+
+    // 게임 시작 함수
+    function startGame() {
+        document.getElementById('start-screen').style.display = 'none';
+        score = 0;
+        combo = 0;
+        nextNoteIndex = 0;
+        activeNotes = [];
+        updateScoreUI();
+        
+        // 각 라인 비우기
+        for (let i = 0; i < LANE_COUNT; i++) {
+            document.getElementById(`lane-${i}`).innerHTML = '';
+        }
+
+        isPlaying = true;
+        startTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // 메인 게임 루프
+    function gameLoop(timestamp) {
+        if (!isPlaying) return;
+
+        const elapsedTime = timestamp - startTime;
+
+        // 1. 채보 데이터에 맞춰 노트 생성
+        // (노트 속도에 따라 판정선까지 도달하는 시간을 계산하여 미리 생성)
+        const travelTime = (HIT_LINE_Y / NOTE_SPEED) * 16.6; // 약 초당 60프레임 기준 이동 시간
+        
+        while (nextNoteIndex < chartData.length && chartData[nextNoteIndex].time - travelTime <= elapsedTime) {
+            spawnNote(chartData[nextNoteIndex]);
+            nextNoteIndex++;
+        }
+
+        // 2. 노트 이동 및 화면 밖 판정 처리
+        for (let i = activeNotes.length - 1; i >= 0; i--) {
+            const noteObj = activeNotes[i];
+            noteObj.y += NOTE_SPEED;
+            noteObj.element.style.top = noteObj.y + 'px';
+
+            // 판정선을 너무 많이 지나쳤을 때 (MISS 처리)
+            if (noteObj.y > HIT_LINE_Y + 40) {
+                showJudgment('MISS', '#ff4d4d');
+                combo = 0;
+                updateScoreUI();
+                noteObj.element.remove();
+                activeNotes.splice(i, 1);
+            }
+        }
+
+        // 곡이 모두 끝나고 노트도 다 사라졌는지 확인
+        if (nextNoteIndex >= chartData.length && activeNotes.length === 0) {
+            setTimeout(endGame, 1000);
+            return;
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // 노트 DOM 생성
+    function spawnNote(noteData) {
+        const laneEl = document.getElementById(`lane-${noteData.lane}`);
+        const noteEl = document.createElement('div');
+        noteEl.className = 'note';
+        noteEl.style.top = '0px';
+        laneEl.appendChild(noteEl);
+
+        activeNotes.push({
+            element: noteEl,
+            lane: noteData.lane,
+            y: 0,
+            targetTime: noteData.time
+        });
+    }
+
+    // 키 눌렀을 때 처리
+    window.addEventListener('keydown', (e) => {
+        const laneIndex = KEYS.indexOf(e.code);
+        if (laneIndex !== -1 && !keyState[laneIndex]) {
+            keyState[laneIndex] = true;
+            document.getElementById(`key-btn-${laneIndex}`).classList.add('active');
+            
+            if (isPlaying) {
+                checkHit(laneIndex);
+            }
+        }
+    });
+
+    // 키 뗬을 때 처리
+    window.addEventListener('keyup', (e) => {
+        const laneIndex = KEYS.indexOf(e.code);
+        if (laneIndex !== -1) {
+            keyState[laneIndex] = false;
+            document.getElementById(`key-btn-${laneIndex}`).classList.remove('active');
+        }
+    });
+
+    // 판정 체크
+    function checkHit(lane) {
+        // 해당 라인의 노트 중 판정선에 가장 가까운 노트 찾기
+        let targetNoteIndex = -1;
+        let minDistance = Infinity;
+
+        for (let i = 0; i < activeNotes.length; i++) {
+            if (activeNotes[i].lane === lane) {
+                const distance = Math.abs(activeNotes[i].y - HIT_LINE_Y);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    targetNoteIndex = i;
+                }
+            }
+        }
+
+        // 판정 범위 안(거리 60px 이내)에 노트가 존재하는 경우
+        if (targetNoteIndex !== -1 && minDistance < 60) {
+            const noteObj = activeNotes[targetNoteIndex];
+
+            if (minDistance < 15) {
+                showJudgment('PERFECT', '#00fff5');
+                score += 1000;
+                combo++;
+            } else if (minDistance < 35) {
+                showJudgment('GREAT', '#ffea00');
+                score += 700;
+                combo++;
+            } else {
+                showJudgment('GOOD', '#00ff66');
+                score += 400;
+                combo++;
+            }
+
+            updateScoreUI();
+            noteObj.element.remove();
+            activeNotes.splice(targetNoteIndex, 1);
+        }
+    }
+
+    // UI 업데이트 (점수, 콤보)
+    function updateScoreUI() {
+        document.getElementById('score').innerText = score;
+        document.getElementById('combo').innerText = combo;
+    }
+
+    // 판정 텍스트 연출
+    function showJudgment(text, color) {
+        const el = document.getElementById('judgment');
+        el.innerText = text;
+        el.style.color = color;
+        el.style.opacity = '1';
+        
+        clearTimeout(el.timer);
+        el.timer = setTimeout(() => {
+            el.style.opacity = '0';
+        }, 300);
+    }
+
+    // 게임 종료 처리
+    function endGame() {
+        isPlaying = false;
+        alert(`게임 종료!\n최종 점수: ${score}\n최대 콤보: ${combo}`);
+        document.getElementById('start-screen').style.display = 'flex';
+    }
+</script>
+
+</body>
+</html>
